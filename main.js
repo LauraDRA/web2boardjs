@@ -1,14 +1,27 @@
-const electron = require('electron');
-const async = require("async");
-const path = require('path');
-const os = require('os');
-const uuidV4 = require('uuid/v4');
-const rimraf = require('rimraf');
-const mkdirp = require('mkdirp');
-const log = require('electron-log');
+const ELECTRON = require('electron');
+const ASYNC = require('async');
+const PATH = require('path');
+const OS = require('os');
+const UUIDV4 = require('uuid/v4');
+const RIMRAF = require('rimraf');
+const MKDIRP = require('mkdirp');
+const LOG = require('electron-log');
+const FS = require('fs');
+const CHILD = require('child_process');
+const PATHS = {
+    arduinoBuilder: 'res/arduino_ide/' + process.platform + '/Arduino.app/Contents/Java/arduino-builder',
+    hardware: 'res/arduino_ide/' + process.platform + '/Arduino.app/Contents/Java/hardware',
+    tools: 'res/arduino_ide/' + process.platform + '/Arduino.app/Contents/Java/hardware/tools',
+    toolsBuilder: 'res/arduino_ide/' + process.platform + '/Arduino.app/Contents/Java/tools-builder',
+    builtInLibraries: 'res/arduino_ide/' + process.platform + '/Arduino.app/Contents/Java/libraries',
+    arduinoLibraries: 'res/arduino_libs',
+    tempInoFile: '/main.ino',
+    compilationFolder: '/compilation'
+};
+const APP = ELECTRON.app;
 
+LOG.info('starting in platform: ' + process.platform);
 
-const app = electron.app;
 
 let io;
 
@@ -20,53 +33,76 @@ function startSocketServer() {
 
     io.on('connection', function (socket) {
         socket.on('message', function (data) {
-            console.log('message', data);
+            LOG.info('message', data);
         });
         socket.on('compile', compile);
         socket.on('disconnect', function (data) {
-            console.log('disconnect', data);
+            LOG.info('disconnect', data);
         });
     });
 }
 
 function compile(data, callback) {
-    log.info('compile', data);
+    LOG.info('compile', data);
     data = JSON.parse(data);
-    data.tempPath = path.join(os.homedir(), '.web2boardjs', 'tmp', uuidV4());
-    mkdirp(data.tempPath);
-    async.parallel([
-        async.apply(formatBoardInfo, data),
-        async.apply(getPort, data),
-        async.apply(createTempInoFile, data)
+    ASYNC.parallel([
+        ASYNC.apply(formatBoardInfo, data),
+        ASYNC.apply(getPort, data),
+        ASYNC.apply(createTempFiles, data)
     ], function (err, results) {
         if (err) {
+            LOG.info('error in the compile process', err);
             callback(JSON.stringify({
                 status: -1,
                 error: err
             }));
         } else {
-            //  arduino:avr:nano:cpu=atmega168
-            //  /dev/ttyACM0
-            //  /path/to/sketch/sketch.ino
+            let boardFqbn = results[0],
+                port = results[1],
+                tmpPath = results[2],
+                compilationFolderPath = tmpPath + PATHS.compilationFolder,
+                pathToIno = tmpPath + PATHS.tempInoFile;
 
-            //arduino_ide/mac/Arduino.app/Contents/MacOS/Arduino --verify --board arduino:avr:bt:cpu=atmega328 --port /dev/cu.usbserial-A402PJHM test/res/off.ino
-            //arduino_ide/mac/Arduino.app/Contents/Java/arduino-builder --compile -hardware="arduino_ide/mac/Arduino.app/Contents/Java/hardware" -tools="arduino_ide/mac/Arduino.app/Contents/Java/hardware/tools" -tools="arduino_ide/mac/Arduino.app/Contents/Java/tools-builder" -fqbn="arduino:avr:bt:cpu=atmega328" test/res/blink.ino
-            //arduino_ide/mac/Arduino.app/Contents/Java/arduino-builder --compile -hardware="arduino_ide/mac/Arduino.app/Contents/Java/hardware" -tools="arduino_ide/mac/Arduino.app/Contents/Java/hardware/tools" -tools="arduino_ide/mac/Arduino.app/Contents/Java/tools-builder" -built-in-libraries="arduino_ide/mac/Arduino.app/Contents/Java/libraries" -fqbn="arduino:avr:bt:cpu=atmega328" -build-path="/Users/tom/temp/build/" "test/res/off.ino"
-            //arduino_ide/mac/Arduino.app/Contents/Java/arduino-builder -compile -hardware="arduino_ide/mac/Arduino.app/Contents/Java/hardware" -tools="arduino_ide/mac/Arduino.app/Contents/Java/hardware/tools" -tools="arduino_ide/mac/Arduino.app/Contents/Java/tools-builder" -fqbn="arduino:avr:bt:cpu=atmega328" -built-in-libraries="arduino_ide/mac/Arduino.app/Contents/Java/libraries" -ide-version="10609" -build-path="/Users/tom/.avrpizza/tmp/dfde8910-dfd9-11e7-a185-9172707aa7ba" -debug-level="10" /Users/tom/web2boardjs/test/res/off/off.ino
-            //res/arduino_ide/mac/Arduino.app/Contents/Java/arduino-builder -compile -hardware="res/arduino_ide/mac/Arduino.app/Contents/Java/hardware" -tools="res/arduino_ide/mac/Arduino.app/Contents/Java/hardware/tools" -tools="res/arduino_ide/mac/Arduino.app/Contents/Java/tools-builder" -fqbn="arduino:avr:bt:cpu=atmega328" -built-in-libraries="res/arduino_ide/mac/Arduino.app/Contents/Java/libraries" -libraries="res/arduino_libs" -ide-version="10609" -build-path="/Users/tom/.avrpizza/tmp/dfde8910-dfd9-11e7-a185-9172707aa7ba" -debug-level="10" /Users/tom/web2boardjs/test/res/off/off.ino
-            callArduinoIde('arduino --board ' + results[0] + ' --port ' + results[1] + ' --upload ' + results[2], function (err) {
+            let command = [
+                PATHS.arduinoBuilder,
+                '-compile',
+                '-hardware',
+                PATHS.hardware,
+                '-tools',
+                PATHS.tools,
+                '-tools',
+                PATHS.toolsBuilder,
+                '-fqbn',
+                boardFqbn,
+                '-built-in-libraries',
+                PATHS.builtInLibraries,
+                '-libraries',
+                PATHS.arduinoLibraries,
+                '-ide-version',
+                '10609',
+                '-build-path',
+                '"' + compilationFolderPath + '"',
+                '-debug-level',
+                '10',
+                '"' + pathToIno + '"'
+            ].join(' ');
+            callArduinoIde(command, function (err, output) {
+                LOG.info('result callArduinIde');
+                LOG.info(err, output);
                 if (err) {
                     callback(JSON.stringify({
                         status: -1,
-                        error: err
+                        error: err,
+                        output: output
                     }));
                 } else {
                     callback(JSON.stringify({
-                        status: 0
+                        status: 0,
+                        output: output
                     }));
                 }
-                rimraf(paths.dest, function (error) {
-                    console.log();
+                RIMRAF(tmpPath, function (error) {
+                    LOG.info('temp path deleted');
                 });
             });
         }
@@ -75,7 +111,7 @@ function compile(data, callback) {
 
 
 function formatBoardInfo(data, callback) {
-    log.info('formatBoardInfo');
+    LOG.info('formatBoardInfo');
     switch (data.board) {
         case 'bt328':
             boardInfo = 'arduino:avr:bt:cpu=atmega328';
@@ -91,7 +127,7 @@ function formatBoardInfo(data, callback) {
 }
 
 function getPort(data, callback) {
-    log.info('getPort');
+    LOG.info('getPort');
     if (data.port) {
         callback(null, data.port);
     } else {
@@ -100,52 +136,74 @@ function getPort(data, callback) {
 }
 
 function getPortByBoard(data, callback) {
-    log.info('getPortByBoard');
+    LOG.info('getPortByBoard');
     //TODO:
     callback(null, '/dev/cu.usbserial-A402PJHM');
 }
 
-function createTempInoFile(data, callback) {
-    log.info('createTempInoFile');
-    data.tempPath //HERE
+function createTempFiles(data, callback) {
+    LOG.info('createTempInoFile');
+    let tmpPath = PATH.join(OS.homedir(), '.web2boardjs', 'tmp', UUIDV4());
+    MKDIRP.sync(tmpPath);
+
+    ASYNC.parallel([
+        ASYNC.apply(MKDIRP, tmpPath + PATHS.compilationFolder),
+        ASYNC.apply(createTempInoFile, data, tmpPath),
+    ], function (err, results) {
+        callback(err, tmpPath);
+    });
+}
+function createTempInoFile(data, tmpPath, callback) {
+    FS.writeFile(tmpPath + PATHS.tempInoFile, data.code, function (err) {
+        callback(err, tmpPath + PATHS.tempInoFile);
+    });
 }
 
 function callArduinoIde(command, callback) {
-
+    LOG.info('callArduinoIde', command);
+    CHILD.exec(command, function (err, stdout, stderr) {
+        LOG.info('err', err);
+        LOG.info('stderr', stderr);
+        LOG.info('stdout', stdout);
+        callback(err, {
+            stderr: stderr,
+            stdout: stdout
+        });
+    });
 }
 
 
 
-app.on('start', function () {
-    console.log('start');
+APP.on('start', function () {
+    LOG.info('start');
 });
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on('ready', function () {
-    console.log('ready');
+APP.on('ready', function () {
+    LOG.info('ready');
     startSocketServer();
 });
 
 // Quit when all windows are closed.
-app.on('window-all-closed', function () {
-    console.log('window-all-closed');
+APP.on('window-all-closed', function () {
+    LOG.info('window-all-closed');
     // On OS X it is common for applications and their menu bar
     // to stay active until the user quits explicitly with Cmd + Q
     if (process.platform !== 'darwin') {
-        app.quit();
+        APP.quit();
     }
 });
 
-app.on('activate', function () {
-    console.log('activate');
+APP.on('activate', function () {
+    LOG.info('activate');
 
 });
 
 let tryTimeout;
 process.on('uncaughtException', function (error) {
     // Handle the error
-    console.log('uncaughtException', error);
+    LOG.info('uncaughtException', error);
     if (tryTimeout) {
         clearTimeout(tryTimeout);
     }
