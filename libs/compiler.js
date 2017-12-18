@@ -11,22 +11,18 @@ module.exports = function (PATHS) {
 
     function compile(data, callback) {
         LOG.info('compile', data);
-        data = JSON.parse(data);
         ASYNC.parallel([
             ASYNC.apply(formatBoardInfo, data),
-            ASYNC.apply(getPort, data),
             ASYNC.apply(createTempFiles, data)
         ], function (err, results) {
             if (err) {
-                LOG.info('error in the compile process', err);
-                callback(JSON.stringify({
-                    status: -1,
-                    error: err
-                }));
+                callback(err);
+                RIMRAF(tmpPath, function (error) {
+                    LOG.info('temp path deleted');
+                });
             } else {
                 let boardFqbn = results[0],
-                    port = results[1],
-                    tmpPath = results[2],
+                    tmpPath = results[1],
                     compilationFolderPath = tmpPath + PATHS.compilationFolder,
                     pathToIno = tmpPath + PATHS.tempInoFile;
 
@@ -57,20 +53,18 @@ module.exports = function (PATHS) {
                     LOG.info('result callArduinIde');
                     LOG.info(err, output);
                     if (err) {
-                        callback(JSON.stringify({
-                            status: -1,
-                            error: err,
-                            output: output
-                        }));
+                        callback(err);
+                        RIMRAF(tmpPath, function (error) {
+                            LOG.info('temp path deleted');
+                        });
                     } else {
-                        callback(JSON.stringify({
-                            status: 0,
-                            output: output
-                        }));
+                        FS.readFile(compilationFolderPath + PATHS.tempInoFile + '.hex', 'utf8', function (err, res) {
+                            callback(err, res);
+                            /*RIMRAF(tmpPath, function (error) {
+                                LOG.info('temp path deleted');
+                            });*/
+                        });
                     }
-                    RIMRAF(tmpPath, function (error) {
-                        LOG.info('temp path deleted');
-                    });
                 });
             }
         });
@@ -93,20 +87,6 @@ module.exports = function (PATHS) {
         }
     }
 
-    function getPort(data, callback) {
-        LOG.info('getPort');
-        if (data.port) {
-            callback(null, data.port);
-        } else {
-            getPortByBoard(data, callback);
-        }
-    }
-
-    function getPortByBoard(data, callback) {
-        LOG.info('getPortByBoard');
-        //TODO:
-        callback(null, '/dev/cu.usbserial-A402PJHM');
-    }
 
     function createTempFiles(data, callback) {
         LOG.info('createTempInoFile');

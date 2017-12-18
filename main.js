@@ -14,6 +14,7 @@ const PATHS = {
 };
 
 const compiler = require('./libs/compiler.js')(PATHS);
+const uploader = require('./libs/uploader.js')(PATHS);
 
 
 
@@ -32,7 +33,41 @@ function startSocketServer() {
         socket.on('message', function (data) {
             LOG.info('message', data);
         });
-        socket.on('compile', compiler.compile);
+        socket.on('compile', function (data, callback) {
+            compiler.compile(JSON.parse(data), function (err, res) {
+                let response;
+                if (err) {
+                    LOG.info('error in the compile process', err);
+                    response = {
+                        status: -1,
+                        error: err
+                    };
+                } else {
+                    response = {
+                        status: 0,
+                        hex: res
+                    };
+                }
+                callback(JSON.stringify(response));
+            });
+        });
+        socket.on('upload', function (data, callback) {
+            uploader.load(JSON.parse(data), function (err, res) {
+                let response;
+                if (err) {
+                    LOG.info('error in the load process', err);
+                    response = {
+                        status: -1,
+                        error: err
+                    };
+                } else {
+                    response = {
+                        status: 0
+                    };
+                }
+                callback(JSON.stringify(response));
+            });
+        });
         socket.on('disconnect', function (data) {
             LOG.info('disconnect', data);
         });
