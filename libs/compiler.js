@@ -11,18 +11,21 @@ module.exports = function (PATHS) {
 
     function compile(data, callback) {
         LOG.info('compile', data);
-        ASYNC.parallel([
+        ASYNC.parallel(ASYNC.reflectAll([
             ASYNC.apply(formatBoardInfo, data),
             ASYNC.apply(createTempFiles, data)
-        ], function (err, results) {
+        ]), function (err, results) {
+            err = err || results[0].error || results[1].error;
+            let tmpPath = results[1].value;
             if (err) {
                 callback(err);
-                RIMRAF(tmpPath, function (error) {
-                    LOG.info('temp path deleted');
-                });
+                if (tmpPath) {
+                    RIMRAF(tmpPath, function (error) {
+                        LOG.info('temp path deleted');
+                    });
+                }
             } else {
-                let boardFqbn = results[0],
-                    tmpPath = results[1],
+                let boardFqbn = results[0].value,
                     compilationFolderPath = tmpPath + PATHS.compilationFolder,
                     pathToIno = tmpPath + PATHS.tempInoFile;
 
@@ -60,9 +63,9 @@ module.exports = function (PATHS) {
                     } else {
                         FS.readFile(compilationFolderPath + PATHS.tempInoFile + '.hex', 'utf8', function (err, res) {
                             callback(err, res);
-                            /*RIMRAF(tmpPath, function (error) {
+                            RIMRAF(tmpPath, function (error) {
                                 LOG.info('temp path deleted');
-                            });*/
+                            });
                         });
                     }
                 });
@@ -73,6 +76,7 @@ module.exports = function (PATHS) {
 
     function formatBoardInfo(data, callback) {
         LOG.info('formatBoardInfo');
+        var boardInfo;
         switch (data.board) {
             case 'bt328':
                 boardInfo = 'arduino:avr:bt:cpu=atmega328';

@@ -1,6 +1,8 @@
-const ELECTRON = require('electron');
-const LOG = require('electron-log');
-const APP = ELECTRON.app;
+const ELECTRON = require('electron'),
+    LOG = require('electron-log'),
+    FS = require('fs'),
+    HTTPS = require('https'),
+    APP = ELECTRON.app;
 
 const PATHS = {
     arduinoBuilder: 'res/arduino_ide/' + process.platform + '/Arduino.app/Contents/Java/arduino-builder',
@@ -13,6 +15,7 @@ const PATHS = {
     compilationFolder: '/compilation'
 };
 
+
 const compiler = require('./libs/compiler.js')(PATHS);
 const uploader = require('./libs/uploader.js')(PATHS);
 
@@ -21,12 +24,16 @@ const uploader = require('./libs/uploader.js')(PATHS);
 LOG.info('starting in platform: ' + process.platform);
 
 
-let io;
+let io, httpsServer;
 
 function startSocketServer() {
+    if (httpsServer) {
+        httpsServer.close();
+    }
     if (io) {
         io.close();
     }
+
     io = require('socket.io')(9876);
 
     io.on('connection', function (socket) {
@@ -34,7 +41,7 @@ function startSocketServer() {
             LOG.info('message', data);
         });
         socket.on('compile', function (data, callback) {
-            compiler.compile(JSON.parse(data), function (err, res) {
+            compiler.compile(data, function (err, res) {
                 let response;
                 if (err) {
                     LOG.info('error in the compile process', err);
@@ -48,14 +55,13 @@ function startSocketServer() {
                         hex: res
                     };
                 }
-                callback(JSON.stringify(response));
+                callback(response);
             });
         });
         socket.on('upload', function (data, callback) {
-            uploader.load(JSON.parse(data), function (err, res) {
+            uploader.load(data, function (err, res) {
                 let response;
                 if (err) {
-                    LOG.info('error in the load process', err);
                     response = {
                         status: -1,
                         error: err
@@ -65,11 +71,19 @@ function startSocketServer() {
                         status: 0
                     };
                 }
-                callback(JSON.stringify(response));
+                callback(response);
             });
         });
         socket.on('disconnect', function (data) {
             LOG.info('disconnect', data);
+        });
+
+        socket.on('version', function (data, callback) {
+            LOG.info('version', APP.getVersion());
+            callback({
+                status: 0,
+                version: APP.getVersion()
+            });
         });
     });
 }

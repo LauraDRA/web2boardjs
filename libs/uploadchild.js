@@ -27,7 +27,7 @@ process.on('message', function (m) {
             process.send({
                 type: 'error',
                 status: -1,
-                error: error
+                error: error.toString()
             });
         } else {
             process.send({

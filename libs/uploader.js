@@ -15,7 +15,11 @@ module.exports = function (PATHS) {
             } else {
                 LOG.info('start loading');
 
-                var child = CHILD.fork('libs/uploadchild.js');
+                let child = CHILD.fork('libs/uploadchild.js', {
+                    silent: false,
+                    stdio: [0, 1, 2, 'ipc']
+                });
+                let compilationComplete = false;
 
                 child.on('message', function (message) {
 
@@ -23,17 +27,19 @@ module.exports = function (PATHS) {
                         case 'compilationDone':
                             LOG.info('compilation OK');
                             callback(null, message);
+                            compilationComplete = true;
                             child.kill();
                             break;
                         case 'info':
                             LOG.info('Message from child: ', message.info);
                             break;
                         case 'error':
-                            LOG.error('Error from child: ', message);//TODO port blocked error
+                            LOG.error('Error from child: ', message);
                             callback({
                                 status: -1,
                                 error: message.error
                             });
+                            compilationComplete = true;
                             child.kill();
                             break;
                         default:
@@ -42,47 +48,35 @@ module.exports = function (PATHS) {
 
                 });
                 child.on('close', function (m, signal) {
-                    console.log('PARENT got close:', m, signal);
+                    if (!compilationComplete) {
+                        callback('Parent got close: ' + m + signal);
+                        compilationComplete = true;
+                    }
                 });
-                child.on('disconnect', function (m, signal) {
-                    console.log('PARENT got disconnect:', m, signal);
+                child.on('disconnect', function () {
+                    if (!compilationComplete) {
+                        callback('Parent got Disconnect');
+                        compilationComplete = true;
+                    }
                 });
                 child.on('error', function (m, signal) {
-                    console.log('PARENT got error:', m, signal);
+                    if (!compilationComplete) {
+                        callback('Parent got Error:' + m + signal);
+                        compilationComplete = true;
+                    }
                 });
                 child.on('exit', function (m, signal) {
-                    console.log('PARENT got exit:', m, signal);
+                    if (!compilationComplete) {
+                        callback('Parent got signal:' + m + signal);
+                        compilationComplete = true;
+                    }
                 });
-
 
                 child.send({
                     hex: result[0],
                     board: result[1],
                     port: params.port
                 });
-
-
-                /*let AVRGIRL = require('avrgirl-arduino'),
-                    hex = result[0],
-                    board = result[1],
-                    avrgirl = new AVRGIRL({
-                        board: board,
-                        debug: true,
-                        port: params.port
-                    });
-                hex = new Buffer(hex);
-                avrgirl.flash(hex, function (error) {
-                    if (error) {
-                        callback({
-                            status: -1,
-                            error: error
-                        });
-                    } else {
-                        callback({
-                            status: 0
-                        });
-                    }
-                });*/
             }
         });
     }
