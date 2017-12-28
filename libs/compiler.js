@@ -77,13 +77,14 @@ module.exports = function (PATHS) {
     function formatBoardInfo(data, callback) {
         LOG.info('formatBoardInfo');
         var boardInfo;
-        switch (data.board) {
-            case 'bt328':
-                boardInfo = 'arduino:avr:bt:cpu=atmega328';
-                break;
-            default:
-
+        if (data.board) {
+            switch (data.board.mcu) {
+                case 'bt328':
+                    boardInfo = 'arduino:avr:bt:cpu=atmega328';
+                    break;
+            }
         }
+
         if (boardInfo) {
             callback(null, boardInfo);
         } else {

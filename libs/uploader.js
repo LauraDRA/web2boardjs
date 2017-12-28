@@ -91,13 +91,16 @@ module.exports = function (PATHS) {
 
     function getBoardId(params, callback) {
         let result;
-        switch (params.board) {
-            case 'bt328':
-                result = 'bqZum';
-                break;
-            default:
-                result = params.board;
+        if (params && params.board) {
+            switch (params.board.mcu) {
+                case 'bt328':
+                    result = 'bqZum';
+                    break;
+                default:
+                    result = params.board;
+            }
         }
+
         callback(null, result);
     }
 

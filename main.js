@@ -18,6 +18,7 @@ const PATHS = {
 
 const compiler = require('./libs/compiler.js')(PATHS);
 const uploader = require('./libs/uploader.js')(PATHS);
+const serial = require('./libs/serial.js')();
 
 
 
@@ -41,39 +42,46 @@ function startSocketServer() {
             LOG.info('message', data);
         });
         socket.on('compile', function (data, callback) {
-            compiler.compile(data, function (err, res) {
-                let response;
-                if (err) {
-                    LOG.info('error in the compile process', err);
-                    response = {
-                        status: -1,
-                        error: err
-                    };
-                } else {
-                    response = {
-                        status: 0,
-                        hex: res
-                    };
-                }
-                callback(response);
+            LOG.info('compile', data);
+            compiler.compile(data, function (err, result) {
+                formatResponse(err, result, 'compile', callback);
             });
         });
         socket.on('upload', function (data, callback) {
-            uploader.load(data, function (err, res) {
-                let response;
-                if (err) {
-                    response = {
-                        status: -1,
-                        error: err
-                    };
-                } else {
-                    response = {
-                        status: 0
-                    };
-                }
-                callback(response);
+            LOG.info('upload', data);
+            uploader.load(data, function (err, result) {
+                formatResponse(err, result, 'upload', callback);
             });
         });
+
+        socket.on('openserialport', function (data, callback) {
+            LOG.info('openserialport', data);
+            serial.openSerialPort(data, socket, function (err, result) {
+                formatResponse(err, result, 'openserialport', callback);
+            });
+        });
+
+        socket.on('closeserialport', function (data, callback) {
+            LOG.info('closeserialport');
+            serial.closeSerialPort(function (err, result) {
+                formatResponse(err, result, 'closeSerialPort', callback);
+            });
+        });
+
+        socket.on('sendtoserialport', function (data, callback) {
+            LOG.info('sendtoserialport', data);
+            serial.sendToSerialPort(data, function (err) {
+                formatResponse(err, null, 'sendToSerialPort', callback);
+            });
+        });
+
+        socket.on('getports', function (data, callback) {
+            LOG.info('getports');
+            serial.getPorts(function (err, result) {
+                formatResponse(err, result, 'getPorts', callback);
+            });
+        });
+
         socket.on('disconnect', function (data) {
             LOG.info('disconnect', data);
         });
@@ -86,6 +94,23 @@ function startSocketServer() {
             });
         });
     });
+}
+
+function formatResponse(err, result, info, callback) {
+    let response;
+    if (err) {
+        LOG.info('error', info, err);
+        response = {
+            status: -1,
+            error: err
+        };
+    } else {
+        response = {
+            status: 0,
+            data: result
+        };
+    }
+    callback(response);
 }
 
 APP.on('start', function () {
