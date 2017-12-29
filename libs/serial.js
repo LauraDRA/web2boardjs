@@ -16,12 +16,17 @@ module.exports = function () {
                         callback(err.message);
                         closeSerialPort();
                     } else {
-                        callback(null, 'port-opened')
-                        parser = port.pipe(new READ_LINE({ delimiter: params.delimiter || DEFAULT_DELIMITER }));
-                        parser.on('data', function (data) {
-                            socket.emit('serialportdata', data);
-                        });
-                        callback(null, 'port-opened');
+                        if (port) {
+                            callback(null, 'port-opened')
+                            parser = port.pipe(new READ_LINE({ delimiter: params.delimiter || DEFAULT_DELIMITER }));
+                            parser.on('data', function (data) {
+                                LOG.info('data', data);
+                                socket.emit('serialportdata', data);
+                            });
+                        } else {
+                            callback('port-was-closed');
+                        }
+
                     }
                 });
                 port.on('error', function (err) {

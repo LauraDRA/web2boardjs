@@ -84,6 +84,7 @@ function startSocketServer() {
 
         socket.on('disconnect', function (data) {
             LOG.info('disconnect', data);
+            serial.closeSerialPort();
         });
 
         socket.on('version', function (data, callback) {
