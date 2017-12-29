@@ -9,35 +9,14 @@ module.exports = function () {
 
     function openSerialPort(params, socket, callback) {
         if (params && params.port && params.baudRate) {
-            if (!port) {
-                port = new SERIAL_PORT(params.port, { baudRate: params.baudRate }, function (err) {
-                    if (err) {
-                        LOG.info('error openening port', err);
-                        callback(err.message);
-                        closeSerialPort();
-                    } else {
-                        if (port) {
-                            callback(null, 'port-opened')
-                            parser = port.pipe(new READ_LINE({ delimiter: params.delimiter || DEFAULT_DELIMITER }));
-                            parser.on('data', function (data) {
-                                LOG.info('data', data);
-                                socket.emit('serialportdata', data);
-                            });
-                        } else {
-                            callback('port-was-closed');
-                        }
-
-                    }
-                });
-                port.on('error', function (err) {
-                    LOG.info('error', err);
-                    closeSerialPort();
-                });
-                port.on('close', function (err) {
-                    LOG.info('close', err);
-                    socket.emit('serialportclosed');
-                    closeSerialPort();
-                });
+            if (!port || params.forceReconnect) {
+                if (params.forceReconnect) {
+                    closeSerialPort(function () {
+                        createSerialPortObject(params, socket, callback);
+                    });
+                } else {
+                    createSerialPortObject(params, socket, callback);
+                }
             } else {
                 callback(null, 'port-was-opened-before')
             }
@@ -48,6 +27,36 @@ module.exports = function () {
         } else {
             callback('no-baudrate');
         }
+    }
+
+    function createSerialPortObject(params, socket, callback) {
+        port = new SERIAL_PORT(params.port, { baudRate: params.baudRate }, function (err) {
+            if (err) {
+                LOG.info('error openening port', err);
+                callback(err.message);
+                closeSerialPort();
+            } else {
+                if (port) {
+                    callback(null, 'port-opened')
+                    parser = port.pipe(new READ_LINE({ delimiter: params.delimiter || DEFAULT_DELIMITER }));
+                    parser.on('data', function (data) {
+                        LOG.info('data', data);
+                        socket.emit('serialportdata', data);
+                    });
+                } else {
+                    callback('port-was-closed');
+                }
+            }
+        });
+        port.on('error', function (err) {
+            LOG.info('error', err);
+            closeSerialPort();
+        });
+        port.on('close', function (err) {
+            LOG.info('close', err);
+            socket.emit('serialportclosed');
+            closeSerialPort();
+        });
     }
 
     function closeSerialPort(callback) {
