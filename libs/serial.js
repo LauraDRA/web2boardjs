@@ -99,6 +99,7 @@ module.exports = function () {
     return {
         openSerialPort: openSerialPort,
         closeSerialPort: closeSerialPort,
+        sendToSerialPort: sendToSerialPort,
         getPorts: getPorts
     };
 };
