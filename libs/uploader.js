@@ -92,7 +92,12 @@ module.exports = function (PATHS) {
     function getBoardId(params, callback) {
         let result;
         if (params && params.board) {
+            LOG.info('params here');
+            LOG.info(params);
             switch (params.board.mcu) {
+                case 'bt328':
+                    result = 'bqZum';
+                    break;
                 case 'bt328':
                     result = 'bqZum';
                     break;

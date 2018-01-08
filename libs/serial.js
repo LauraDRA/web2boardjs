@@ -5,12 +5,13 @@ module.exports = function () {
         DEFAULT_DELIMITER = '\r\n';
 
     var port,
-        parser;
+        parser,
+        trysOnCloseOpeningPort;
 
     function openSerialPort(params, socket, callback) {
         if (params && params.port && params.baudRate) {
-            if (!port || params.forceReconnect) {
-                if (params.forceReconnect) {
+            if (!port || params.forceReconnect || isDifferentPort(port, params)) {
+                if (params.forceReconnect || isDifferentPort(port, params)) {
                     closeSerialPort(function () {
                         createSerialPortObject(params, socket, callback);
                     });
@@ -29,12 +30,22 @@ module.exports = function () {
         }
     }
 
+    function isDifferentPort(port, params) {
+        let result = true;
+        if (port &&
+            port.path === params.port &&
+            port.baudRate === params.baudRate) {
+            result = false;
+        }
+        return result;
+    }
+
     function createSerialPortObject(params, socket, callback) {
         port = new SERIAL_PORT(params.port, { baudRate: params.baudRate }, function (err) {
             if (err) {
                 LOG.info('error openening port', err);
-                callback(err.message);
                 closeSerialPort();
+                callback(err.message);
             } else {
                 if (port) {
                     callback(null, 'port-opened')
@@ -65,17 +76,30 @@ module.exports = function () {
                 port.close(function (err) {
                     LOG.info('Port closed', err);
                     port = null;
+                    trysOnCloseOpeningPort = 0;
                     if (callback) {
                         callback(err);
                     }
                 });
+            } else if (port.isOpening) {
+                if (trysOnCloseOpeningPort < 3) {
+                    trysOnCloseOpeningPort++;
+                    setTimeout(function () {
+                        closeSerialPort(callback);
+                    }, 2000);
+                } else {
+                    LOG.info('cant close serial port');
+                }
+
             } else {
                 port = null;
+                trysOnCloseOpeningPort = 0;
                 if (callback) {
                     callback();
                 }
             }
         } else {
+            trysOnCloseOpeningPort = 0;
             if (callback) {
                 callback();
             }

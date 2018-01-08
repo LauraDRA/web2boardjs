@@ -8,9 +8,9 @@ process.on('message', function (m) {
     });
 
     let avrgirl = new AVRGIRL({
-        board: m.board,
+        board: m.board,//'pro-mini',
         debug: true,
-        port: m.port
+        port: m.port//'/dev/cu.SLAB_USBtoUART'
     });
     hex = new Buffer(m.hex);
     process.send({
