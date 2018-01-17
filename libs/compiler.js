@@ -52,6 +52,7 @@ module.exports = function (PATHS) {
                     '10',
                     '"' + pathToIno + '"'
                 ].join(' ');
+                LOG.info(command);
                 callArduinoIde(command, function (err, output) {
                     LOG.info('result callArduinIde');
                     LOG.info(err, output);

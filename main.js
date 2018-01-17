@@ -104,10 +104,15 @@ function startSocketServer() {
 function formatResponse(err, result, info, callback) {
     let response;
     if (err) {
+        let message = '';
+        if (err.message) {
+            message = err.message;
+        }
         LOG.info('error', info, err);
         response = {
             status: -1,
-            error: err
+            error: err,
+            message: message
         };
     } else {
         response = {
