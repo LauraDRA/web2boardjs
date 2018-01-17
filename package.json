@@ -5,12 +5,15 @@
   "main": "main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "electron ."
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
   },
-  "author": "",
+  "author": "BQ",
   "license": "GPL-3.0",
   "devDependencies": {
     "electron": "^1.7.9",
+    "electron-builder": "^19.53.7",
     "electron-rebuild": "^1.6.0"
   },
   "dependencies": {
@@ -22,5 +25,26 @@
     "rimraf": "^2.6.2",
     "socket.io": "^2.0.4",
     "uuid": "^3.1.0"
+  },
+  "build": {
+    "appId": "com.bq.web2boardjs",
+    "productName": "web2boardjs",
+    "copyright": "Copyright © 2018 BQ",
+    "directories": {
+      "buildResources": "buildResources"
+    },
+    "mac": {
+      "category": "public.app-category.education",
+      "extendInfo": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLName": "bitbloq.bq.com",
+            "CFBundleURLSchemes": [
+              "web2board"
+            ]
+          }
+        ]
+      }
+    }
   }
 }
