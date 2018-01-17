@@ -1,7 +1,7 @@
 {
   "name": "web2boardjs",
   "version": "1.0.0",
-  "description": "",
+  "description": "Application to communicate with Bitbloq to compile and load programs",
   "main": "main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -33,18 +33,31 @@
     "directories": {
       "buildResources": "buildResources"
     },
+    "files": [
+      "main.js",
+      "libs/*.*",
+      "res/arduino_libs/*.*"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "res/arduino_libs"
+    ],
+    "protocols": {
+      "name": "Bitbloq web2board launcher",
+      "schemes": [
+        "web2board"
+      ]
+    },
     "mac": {
       "category": "public.app-category.education",
-      "extendInfo": {
-        "CFBundleURLTypes": [
-          {
-            "CFBundleURLName": "bitbloq.bq.com",
-            "CFBundleURLSchemes": [
-              "web2board"
-            ]
-          }
-        ]
-      }
+      "files": [
+        "res/arduino_ide/darwin",
+        "res/drivers/darwin"
+      ],
+      "asarUnpack": [
+        "res/arduino_ide/darwin",
+        "res/drivers/darwin"
+      ]
     }
   }
 }

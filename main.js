@@ -4,15 +4,31 @@ const ELECTRON = require('electron'),
     HTTPS = require('https'),
     APP = ELECTRON.app;
 
+const UNPACKED_PATH = (__dirname.indexOf('app.asar') !== -1) ? __dirname.replace('app.asar', 'app.asar.unpacked') : __dirname;
+
 const PATHS = {
-    arduinoBuilder: 'res/arduino_ide/' + process.platform + '/Arduino.app/Contents/Java/arduino-builder',
-    hardware: 'res/arduino_ide/' + process.platform + '/Arduino.app/Contents/Java/hardware',
-    tools: 'res/arduino_ide/' + process.platform + '/Arduino.app/Contents/Java/hardware/tools',
-    toolsBuilder: 'res/arduino_ide/' + process.platform + '/Arduino.app/Contents/Java/tools-builder',
-    builtInLibraries: 'res/arduino_ide/' + process.platform + '/Arduino.app/Contents/Java/libraries',
-    arduinoLibraries: 'res/arduino_libs',
+    arduinoBuilder: UNPACKED_PATH + '/res/arduino_ide/' + process.platform + '/Arduino.app/Contents/Java/arduino-builder',
+    hardware: UNPACKED_PATH + '/res/arduino_ide/' + process.platform + '/Arduino.app/Contents/Java/hardware',
+    tools: UNPACKED_PATH + '/res/arduino_ide/' + process.platform + '/Arduino.app/Contents/Java/hardware/tools',
+    toolsBuilder: UNPACKED_PATH + '/res/arduino_ide/' + process.platform + '/Arduino.app/Contents/Java/tools-builder',
+    builtInLibraries: UNPACKED_PATH + '/res/arduino_ide/' + process.platform + '/Arduino.app/Contents/Java/libraries',
+    arduinoLibraries: UNPACKED_PATH + '/res/arduino_libs',
     tempInoFile: '/main.ino',
     compilationFolder: '/compilation'
+};
+
+const DRIVERS = {
+    mac: [
+        {
+            filePath: UNPACKED_PATH + '/res/drivers/darwin/FTDIUSBSerialDriver_v2_4_2.dmg',
+            description: 'Drivers FTDI ZUM'
+
+        },
+        {
+            filePath: UNPACKED_PATH + '/res/drivers/darwin/Mac_OSX_VCP_Driver.zip',
+            description: 'Drivers VCP Zowi'
+        }
+    ]
 };
 
 
@@ -21,8 +37,8 @@ const uploader = require('./libs/uploader.js')(PATHS);
 const serial = require('./libs/serial.js')();
 
 
-
-LOG.info('starting in platform: ' + process.platform);
+LOG.info('Paths', __dirname, UNPACKED_PATH);
+LOG.info('Starting in platform: ' + process.platform);
 
 
 let io, httpsServer;

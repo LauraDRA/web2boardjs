@@ -14,8 +14,8 @@ module.exports = function (PATHS) {
                 callback(err);
             } else {
                 LOG.info('start loading');
-
-                let child = CHILD.fork('libs/uploadchild.js', {
+                LOG.info(__dirname);
+                let child = CHILD.fork(__dirname + '/uploadchild.js', {
                     silent: false,
                     stdio: [0, 1, 2, 'ipc']
                 });
