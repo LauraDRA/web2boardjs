@@ -35,6 +35,8 @@ const DRIVERS = {
 const compiler = require('./libs/compiler.js')(PATHS);
 const uploader = require('./libs/uploader.js')(PATHS);
 const serial = require('./libs/serial.js')();
+const arduinolibs = require('./libs/arduinolibs.js')(PATHS, UNPACKED_PATH);
+
 
 
 LOG.info('Paths', __dirname, UNPACKED_PATH);
@@ -112,6 +114,13 @@ function startSocketServer() {
             callback({
                 status: 0,
                 version: APP.getVersion()
+            });
+        });
+
+        socket.on('update_arduino_libs', function (data, callback) {
+            LOG.info('update_arduino_libs', data);
+            arduinolibs.update(data, function (err, result) {
+                formatResponse(err, result, 'update_arduino_libs', callback);
             });
         });
     });
