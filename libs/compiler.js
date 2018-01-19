@@ -83,8 +83,14 @@ module.exports = function (PATHS) {
                 case 'bt328':
                     boardInfo = 'arduino:avr:bt:cpu=atmega328';
                     break;
+                case 'uno':
+                    boardInfo = 'arduino:avr:uno:cpu=atmega328';
+                    break;
                 case 'pro-mini':
                     boardInfo = 'arduino:avr:mini:cpu=atmega328';
+                    break;
+                case 'AVR_zum_junior':
+                    boardInfo = 'arduino:avr:uno:cpu=atmega328';
                     break;
             }
         }

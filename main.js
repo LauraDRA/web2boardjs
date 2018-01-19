@@ -157,7 +157,21 @@ APP.on('start', function () {
 APP.on('ready', function () {
     LOG.info('ready');
     startSocketServer();
+    //testingFunctionOnLoad();
+
 });
+
+function testingFunctionOnLoad() {
+    var blinkProgram = 'void setup(){pinMode(3, OUTPUT);}  void loop(){ digitalWrite(3, HIGH); delay(1000); digitalWrite(3, LOW); delay(1000); }';
+    var emptyProgram = 'void setup(){}  void loop(){  }';
+    var data = {
+        board: { mcu: 'uno' },
+        code: blinkProgram
+    };
+    uploader.load(data, function (err, result) {
+        LOG.info(err, result);
+    });
+};
 
 // Quit when all windows are closed.
 APP.on('window-all-closed', function () {

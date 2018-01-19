@@ -98,8 +98,8 @@ module.exports = function (PATHS) {
                 case 'bt328':
                     result = 'bqZum';
                     break;
-                case 'bt328':
-                    result = 'bqZum';
+                case 'uno':
+                    result = 'uno';
                     break;
                 default:
                     result = params.board;
