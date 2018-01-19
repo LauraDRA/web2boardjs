@@ -2,31 +2,52 @@ const ELECTRON = require('electron'),
     LOG = require('electron-log'),
     FS = require('fs'),
     HTTPS = require('https'),
+    PATH = require('path'),
     APP = ELECTRON.app;
 
-const UNPACKED_PATH = (__dirname.indexOf('app.asar') !== -1) ? __dirname.replace('app.asar', 'app.asar.unpacked') : __dirname;
+const UNPACKED_PATH = (__dirname.indexOf('app.asar') !== -1) ? __dirname.replace('app.asar', 'app.asar.unpacked') : __dirname,
+    ARDUINO_IDE_PLATFORM_PREFIX = {
+        darwin: PATH.join('Arduino.app/Contents/Java/'),
+        win32: PATH.join('arduino-1.8.5/'),
+        linux: ''
+    };
 
 const PATHS = {
-    arduinoBuilder: UNPACKED_PATH + '/res/arduino_ide/' + process.platform + '/Arduino.app/Contents/Java/arduino-builder',
-    hardware: UNPACKED_PATH + '/res/arduino_ide/' + process.platform + '/Arduino.app/Contents/Java/hardware',
-    tools: UNPACKED_PATH + '/res/arduino_ide/' + process.platform + '/Arduino.app/Contents/Java/hardware/tools',
-    toolsBuilder: UNPACKED_PATH + '/res/arduino_ide/' + process.platform + '/Arduino.app/Contents/Java/tools-builder',
-    builtInLibraries: UNPACKED_PATH + '/res/arduino_ide/' + process.platform + '/Arduino.app/Contents/Java/libraries',
-    arduinoLibraries: UNPACKED_PATH + '/res/arduino_libs',
+    arduinoBuilder: PATH.join(UNPACKED_PATH, '/res/arduino_ide/', process.platform, ARDUINO_IDE_PLATFORM_PREFIX[process.platform], 'arduino-builder'),
+    hardware: PATH.join(UNPACKED_PATH, '/res/arduino_ide/', process.platform, ARDUINO_IDE_PLATFORM_PREFIX[process.platform], 'hardware'),
+    tools: PATH.join(UNPACKED_PATH, '/res/arduino_ide/', process.platform, ARDUINO_IDE_PLATFORM_PREFIX[process.platform], 'hardware/tools'),
+    toolsBuilder: PATH.join(UNPACKED_PATH, '/res/arduino_ide/', process.platform, ARDUINO_IDE_PLATFORM_PREFIX[process.platform], 'tools-builder'),
+    builtInLibraries: PATH.join(UNPACKED_PATH, '/res/arduino_ide/', process.platform, ARDUINO_IDE_PLATFORM_PREFIX[process.platform], 'libraries'),
+    arduinoLibraries: PATH.join(UNPACKED_PATH, '/res/arduino_libs'),
     tempInoFile: '/main.ino',
     compilationFolder: '/compilation'
 };
 
+
 const DRIVERS = {
-    mac: [
+    darwin: [
         {
-            filePath: UNPACKED_PATH + '/res/drivers/darwin/FTDIUSBSerialDriver_v2_4_2.dmg',
+            filePath: PATH.join(UNPACKED_PATH, '/res/drivers/darwin/FTDIUSBSerialDriver_v2_4_2.dmg'),
             description: 'Drivers FTDI ZUM'
 
         },
         {
-            filePath: UNPACKED_PATH + '/res/drivers/darwin/Mac_OSX_VCP_Driver.zip',
+            filePath: PATH.join(UNPACKED_PATH, '/res/drivers/darwin/Mac_OSX_VCP_Driver/SiLabsUSBDriverDisk.dmg'),
             description: 'Drivers VCP Zowi'
+        }
+    ],
+    win32: [
+        {
+            filePath: PATH.join(UNPACKED_PATH, '/res/drivers/win32/CDM21228_Setup.exe'),
+            description: 'Drivers BQ Zum Core'
+        },
+        {
+            filePath: PATH.join(UNPACKED_PATH, '/res/drivers/win32/CP210x_Windows_Drivers/CP210xVCPInstaller_' + process.arch + '.exe'),
+            description: 'Drivers VCP Zowi'
+        },
+        {
+            filePath: PATH.join(UNPACKED_PATH, '/res/drivers/win32/drivers/dpinst-' + process.arch + '.exe'),
+            description: 'Drivers Arduino'
         }
     ]
 };

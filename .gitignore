@@ -1,3 +1,4 @@
 node_modules
 res/arduino_ide/darwin
 dist
+res/arduino_ide/win32/arduino-1.8.5

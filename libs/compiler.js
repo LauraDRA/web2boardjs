@@ -26,8 +26,8 @@ module.exports = function (PATHS) {
                 }
             } else {
                 let boardFqbn = results[0].value,
-                    compilationFolderPath = tmpPath + PATHS.compilationFolder,
-                    pathToIno = tmpPath + PATHS.tempInoFile;
+                    compilationFolderPath = PATH.join(tmpPath, PATHS.compilationFolder),
+                    pathToIno = PATH.join(tmpPath, PATHS.tempInoFile);
 
                 let command = [
                     PATHS.arduinoBuilder,
@@ -116,8 +116,9 @@ module.exports = function (PATHS) {
         });
     }
     function createTempInoFile(data, tmpPath, callback) {
-        FS.writeFile(tmpPath + PATHS.tempInoFile, data.code, function (err) {
-            callback(err, tmpPath + PATHS.tempInoFile);
+        let inoFilePath = PATH.join(tmpPath, PATHS.tempInoFile);
+        FS.writeFile(inoFilePath, data.code, function (err) {
+            callback(err, inoFilePath);
         });
     }
 

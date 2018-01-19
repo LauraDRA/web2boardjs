@@ -1,6 +1,7 @@
 module.exports = function (PATHS) {
     const LOG = require('electron-log'),
         ASYNC = require('async'),
+        PATH = require('path'),
         CHILD = require('child_process'),
         COMPILER = require('./compiler.js')(PATHS);
 
@@ -15,7 +16,7 @@ module.exports = function (PATHS) {
             } else {
                 LOG.info('start loading');
                 LOG.info(__dirname);
-                let child = CHILD.fork(__dirname + '/uploadchild.js', {
+                let child = CHILD.fork(PATH.join(__dirname, '/uploadchild.js'), {
                     silent: false,
                     stdio: [0, 1, 2, 'ipc']
                 });
